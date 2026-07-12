@@ -1,0 +1,65 @@
+version: "3.9"
+
+networks:
+  ai_local_net:
+    driver: bridge
+    internal: true
+
+services:
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    networks:
+      - ai_local_net
+    volumes:
+      - ./ollama-data:/root/.ollama
+    gpus:
+      all
+    environment:
+      OLLAMA_MODELS=/root/.ollama/models
+    command: ["serve"]
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:latest
+    container_name: openwebui
+    restart: unless-stopped
+    networks:
+      - ai_local_net
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_BASE_URL=http://ollama:11434
+    ports:
+      - "3000:8080"
+    volumes:
+      - ./open-webui-data:/app/backend/data
+
+  fileserver-mcp:
+    image: ghcr.io/modelcontextprotocol/servers/filesystem:latest
+    container_name: fileserver-mcp
+    networks:
+      - ai_local_net
+    volumes:
+      - ${CODE_DIR}:/workspace
+    environment:
+      ROOT=/workspace
+
+  git-mcp:
+    image: ghcr.io/modelcontextprotocol/servers/git:latest
+    container_name: git-mcp
+    networks:
+      - ai_local_net
+    volumes:
+      - ${CODE_DIR}:/workspace
+
+  dotnet-mcp:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    container_name: dotnet-mcp
+    networks:
+      - ai_local_net
+    working_dir: /workspace
+    volumes:
+      - ${CODE_DIR}:/workspace
+    entrypoint: ["tail", "-f", "/dev/null"]
