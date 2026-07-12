@@ -1,9 +1,10 @@
-version: "3.9"
-
 networks:
   ai_local_net:
     driver: bridge
     internal: true
+
+  ai_frontend:
+    driver: bridge
 
 services:
 
@@ -18,7 +19,7 @@ services:
     gpus:
       all
     environment:
-      OLLAMA_MODELS=/root/.ollama/models
+      - OLLAMA_MODELS=/root/.ollama/models
     command: ["serve"]
 
   openwebui:
@@ -27,27 +28,38 @@ services:
     restart: unless-stopped
     networks:
       - ai_local_net
+      - ai_frontend
     depends_on:
       - ollama
     environment:
-      OLLAMA_BASE_URL=http://ollama:11434
-    ports:
-      - "3000:8080"
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_AUTH=false
+      - ENABLE_SIGNUP=false
+      - ENABLE_LOGIN_FORM=false
+      - ENABLE_GUEST_ACCESS=true
+      - OFFLINE_MODE=true
+      - HF_HUB_OFFLINE=1
+      - RAG_EMBEDDING_MODEL_AUTO_UPDATE=false
+      - RAG_RERANKING_MODEL_AUTO_UPDATE=false
+      - WHISPER_MODEL_AUTO_UPDATE=false
+      - RAG_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
     volumes:
       - ./open-webui-data:/app/backend/data
+      - ./open-webui-models:/app/backend/data/cache/embedding/models
+    ports:
+      - "3000:8080"
 
   fileserver-mcp:
-    image: ghcr.io/modelcontextprotocol/servers/filesystem:latest
+    image: mcp/filesystem:latest
     container_name: fileserver-mcp
     networks:
       - ai_local_net
     volumes:
       - ${CODE_DIR}:/workspace
-    environment:
-      ROOT=/workspace
+    command: ["/workspace"]
 
   git-mcp:
-    image: ghcr.io/modelcontextprotocol/servers/git:latest
+    image: mcp/git:latest
     container_name: git-mcp
     networks:
       - ai_local_net
@@ -55,7 +67,7 @@ services:
       - ${CODE_DIR}:/workspace
 
   dotnet-mcp:
-    image: mcr.microsoft.com/dotnet/sdk:8.0
+    image: mcr.microsoft.com/dotnet/sdk:10.0
     container_name: dotnet-mcp
     networks:
       - ai_local_net
