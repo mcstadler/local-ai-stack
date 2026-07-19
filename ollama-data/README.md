@@ -20,3 +20,5 @@ docker exec -it 2171372148da /bin/sh
 ```bash
 ollama pull qwen2.5-coder:7b
 ```
+
+Make sure to set the 'GOOSE_MODEL' environment variable in 'docker-compose.yml' accordingly.

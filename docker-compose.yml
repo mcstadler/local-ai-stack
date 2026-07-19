@@ -8,6 +8,9 @@ networks:
 
 services:
 
+  # --------------------------------------------------------
+  # LLM server
+  # --------------------------------------------------------
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -22,33 +25,67 @@ services:
       - OLLAMA_MODELS=/root/.ollama/models
     command: ["serve"]
 
-  openwebui:
-    image: ghcr.io/open-webui/open-webui:latest
-    container_name: openwebui
-    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # Chat Frontend
+  # -------------------------------------------------------
+#  openwebui:
+#    image: ghcr.io/open-webui/open-webui:latest
+#    container_name: openwebui
+#    restart: unless-stopped
+#    networks:
+#      - ai_local_net
+#      - ai_frontend
+#    depends_on:
+#      - ollama
+#    environment:
+#      - OLLAMA_BASE_URL=http://ollama:11434
+#      - WEBUI_AUTH=false
+#      - ENABLE_SIGNUP=false
+#      - ENABLE_LOGIN_FORM=false
+#      - ENABLE_GUEST_ACCESS=true
+#      - OFFLINE_MODE=true
+#      - HF_HUB_OFFLINE=1
+#      - RAG_EMBEDDING_MODEL_AUTO_UPDATE=false
+#      - RAG_RERANKING_MODEL_AUTO_UPDATE=false
+#      - WHISPER_MODEL_AUTO_UPDATE=false
+#      - RAG_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+#      - ENABLE_IMAGE_GENERATION=false
+#      - ENABLE_RAG_WEB_SEARCH=false
+#    volumes:
+#      - ./open-webui-data:/app/backend/data
+#      - ./open-webui-models:/app/backend/data/cache/embedding/models
+#    ports:
+#      - "3000:8080"
+
+  # -------------------------------------------------------
+  # Coding Agent
+  # -------------------------------------------------------
+  goose:
+    build:
+      context: ./goose
     networks:
       - ai_local_net
       - ai_frontend
+    ports:
+      - "7681:7681"
     depends_on:
       - ollama
-    environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - WEBUI_AUTH=false
-      - ENABLE_SIGNUP=false
-      - ENABLE_LOGIN_FORM=false
-      - ENABLE_GUEST_ACCESS=true
-      - OFFLINE_MODE=true
-      - HF_HUB_OFFLINE=1
-      - RAG_EMBEDDING_MODEL_AUTO_UPDATE=false
-      - RAG_RERANKING_MODEL_AUTO_UPDATE=false
-      - WHISPER_MODEL_AUTO_UPDATE=false
-      - RAG_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+      - fileserver-mcp
+      - git-mcp
+      - dotnet-mcp
     volumes:
-      - ./open-webui-data:/app/backend/data
-      - ./open-webui-models:/app/backend/data/cache/embedding/models
-    ports:
-      - "3000:8080"
+      - ./goose/.config:/root/.config
+    environment:
+      - GOOSE_PROVIDER=openai
+      - GOOSE_MODEL=qwen2.5-coder:7b
+      - OPENAI_API_KEY=ollama
+      - OPENAI_HOST=http://ollama:11434
+      - OPENAI_BASE_PATH=v1/chat/completions
 
+  # -------------------------------------------------------
+  # Filesystem MCP
+  # -------------------------------------------------------
   fileserver-mcp:
     image: mcp/filesystem:latest
     container_name: fileserver-mcp
@@ -58,6 +95,9 @@ services:
       - ${CODE_DIR}:/workspace
     command: ["/workspace"]
 
+  # -------------------------------------------------------
+  # Git MCP
+  # -------------------------------------------------------
   git-mcp:
     image: mcp/git:latest
     container_name: git-mcp
@@ -66,6 +106,9 @@ services:
     volumes:
       - ${CODE_DIR}:/workspace
 
+  # -------------------------------------------------------
+  # Dotnet MCP
+  # ------------------------------------------------------
   dotnet-mcp:
     image: mcr.microsoft.com/dotnet/sdk:10.0
     container_name: dotnet-mcp
