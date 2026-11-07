@@ -4,7 +4,10 @@ RUN apk add --no-cache \
     bash \
 	curl \
 	ca-certificates \
-	libc6-compat
+	libc6-compat \
+	coreutils \
+	findutils \
+	tree
 
 ENV PATH="/root/.local/bin:${PATH}"
 WORKDIR /app

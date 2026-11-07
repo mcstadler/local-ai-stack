@@ -1,9 +1,20 @@
+# -------------------------------------------------------
+# Network
+#
+# One network for inter-container-communication ('container_net')
+# one between the agent and the reverse proxy ('agent_proxy_net')
+# and one for the connection between host and reverse proxy ('host_proxy_net')
+# -------------------------------------------------------
 networks:
-  ai_local_net:
+  container_net:
     driver: bridge
     internal: true
 
-  ai_frontend:
+  agent_proxy_net:
+    driver: bridge
+    internal: true
+
+  host_proxy_net:
     driver: bridge
 
 services:
@@ -15,28 +26,16 @@ services:
     build:
       context: ./goose
     networks:
-      - ai_local_net
-      - ai_frontend
-    ports:
-      - "7681:7681"
+      - container_net
+      - agent_proxy_net
     depends_on:
       - ollama
-      - mcp-proxy
-#      - filesystem-mcp
-#      - git-mcp
-#      - dotnet-mcp
     volumes:
       - ./goose/.config:/root/.config
     environment:
-#      - GOOSE_PROVIDER=openai
-#      - GOOSE_MODEL=qwen2.5-coder:7b
-#      - OPENAI_API_KEY=ollama
-#      - OPENAI_HOST=http://ollama:11434
-#      - OPENAI_BASE_PATH=v1/chat/completions
-       - GOOSE_PROVIDER=ollama
-       - GOOSE_MODEL=qwen2.5-coder:7b
-       - OLLAMA_HOST=http://ollama:11434
-       - OLLAMA_CONTEXT_LENGTH=32768
+      - GOOSE_PROVIDER=ollama
+      - GOOSE_MODEL=qwen3:8b
+      - OLLAMA_HOST=http://ollama:11434
 
   # --------------------------------------------------------
   # LLM server
@@ -46,7 +45,7 @@ services:
     container_name: ollama
     restart: unless-stopped
     networks:
-      - ai_local_net
+      - container_net
     volumes:
       - ./ollama-data:/root/.ollama
       - ${CODE_DIR}:/workspace
@@ -54,69 +53,22 @@ services:
       all
     environment:
       - OLLAMA_MODELS=/root/.ollama/models
+      - OLLAMA_CONTEXT_LENGTH=8192
     command: ["serve"]
 
-  # -------------------------------------------------------
-  # MCP proxy & servers
-  # -------------------------------------------------------
-  mcp-proxy:
-    build:
-      context: ./mcp-proxy
+  # --------------------------------------------------------
+  # Reverse proxy
+  # --------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
     networks:
-      - ai_local_net
+      - agent_proxy_net
+      - host_proxy_net
     ports:
-      - "8080:8080"
+      - "127.0.0.1:7681:7681"
     volumes:
-      - ./mcp-proxy/config:/config
-      - ${CODE_DIR}:/workspace
-
-#  mcp-proxy:
-#    image: ghcr.io/tbxark/mcp-proxy:latest
-#    container_name: mcp-proxy
-#    networks:
-#      - ai_local_net
-#    ports:
-#      - "3000:3000"
-#    volumes:
-#      - /var/run/docker.sock:/var/run/docker.sock
-
-  # -------------------------------------------------------
-  # Filesystem MCP
-  # -------------------------------------------------------
-#  filesystem-mcp:
-#    image: mcp/filesystem:latest
-#    container_name: filesystem-mcp
-#    networks:
-#      - ai_local_net
-#    volumes:
-#      - ${CODE_DIR}:/workspace
-#    command:
-#      [
-#        "/workspace"
-#      ]
-#    stdin_open: true
-#    tty: true
-
-  # -------------------------------------------------------
-  # Git MCP
-  # -------------------------------------------------------
-#  git-mcp:
-#    image: mcp/git:latest
-#    container_name: git-mcp
-#    networks:
-#      - ai_local_net
-#    volumes:
-#      - ${CODE_DIR}:/workspace
-
-  # -------------------------------------------------------
-  # Dotnet MCP
-  # ------------------------------------------------------
-#  dotnet-mcp:
-#    image: mcr.microsoft.com/dotnet/sdk:10.0
-#    container_name: dotnet-mcp
-#    networks:
-#      - ai_local_net
-#    working_dir: /workspace
-#    volumes:
-#      - ${CODE_DIR}:/workspace
-#    entrypoint: ["tail", "-f", "/dev/null"]
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - goose

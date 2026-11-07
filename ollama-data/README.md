@@ -3,7 +3,7 @@ Download the required model using ollama
 
 ## First powershell
 ```powershell
-docker run -it -rm --gpus all -v .\ollama-data:/root/.ollama ollama/ollama:latest
+docker run -it --rm --gpus all -v .\ollama-data:/root/.ollama ollama/ollama:latest
 ```
 ## Second powershell
 ```powershell
