@@ -1,3 +1,19 @@
 keyring: false
 
 GOOSE_TELEMETRY_ENABLED: false
+
+extensions:
+  developer:
+    display_name: null
+    enabled: true
+    name: developer
+    timeout: null
+    type: builtin
+  filesystem:
+    bundled: false
+    description: 'Filesystem MCP server via mcp-proxy'
+    enabled: true
+    name: filesystem
+    timeout: 300
+    type: streamable_http
+    uri: http://mcp-proxy:8080/filesystem/mcp

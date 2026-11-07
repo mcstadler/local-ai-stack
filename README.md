@@ -8,7 +8,7 @@ The goal of this project is to get a local, containerized and open source AI dev
 ## Run local AI development stack
 ### PowerShell
 - Open a powershell console in the repo root directory
-- Set 'CODE_DIR' environment varialbe
+- Set 'CODE_DIR' environment variable:
   ```powershell
   $env:CODE_DIR = 'C:\Users\<user>\source\repos\'
   ```

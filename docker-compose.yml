@@ -8,56 +8,6 @@ networks:
 
 services:
 
-  # --------------------------------------------------------
-  # LLM server
-  # --------------------------------------------------------
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    restart: unless-stopped
-    networks:
-      - ai_local_net
-    volumes:
-      - ./ollama-data:/root/.ollama
-    gpus:
-      all
-    environment:
-      - OLLAMA_MODELS=/root/.ollama/models
-    command: ["serve"]
-
-
-  # -------------------------------------------------------
-  # Chat Frontend
-  # -------------------------------------------------------
-#  openwebui:
-#    image: ghcr.io/open-webui/open-webui:latest
-#    container_name: openwebui
-#    restart: unless-stopped
-#    networks:
-#      - ai_local_net
-#      - ai_frontend
-#    depends_on:
-#      - ollama
-#    environment:
-#      - OLLAMA_BASE_URL=http://ollama:11434
-#      - WEBUI_AUTH=false
-#      - ENABLE_SIGNUP=false
-#      - ENABLE_LOGIN_FORM=false
-#      - ENABLE_GUEST_ACCESS=true
-#      - OFFLINE_MODE=true
-#      - HF_HUB_OFFLINE=1
-#      - RAG_EMBEDDING_MODEL_AUTO_UPDATE=false
-#      - RAG_RERANKING_MODEL_AUTO_UPDATE=false
-#      - WHISPER_MODEL_AUTO_UPDATE=false
-#      - RAG_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-#      - ENABLE_IMAGE_GENERATION=false
-#      - ENABLE_RAG_WEB_SEARCH=false
-#    volumes:
-#      - ./open-webui-data:/app/backend/data
-#      - ./open-webui-models:/app/backend/data/cache/embedding/models
-#    ports:
-#      - "3000:8080"
-
   # -------------------------------------------------------
   # Coding Agent
   # -------------------------------------------------------
@@ -71,50 +21,102 @@ services:
       - "7681:7681"
     depends_on:
       - ollama
-      - fileserver-mcp
-      - git-mcp
-      - dotnet-mcp
+      - mcp-proxy
+#      - filesystem-mcp
+#      - git-mcp
+#      - dotnet-mcp
     volumes:
       - ./goose/.config:/root/.config
     environment:
-      - GOOSE_PROVIDER=openai
-      - GOOSE_MODEL=qwen2.5-coder:7b
-      - OPENAI_API_KEY=ollama
-      - OPENAI_HOST=http://ollama:11434
-      - OPENAI_BASE_PATH=v1/chat/completions
+#      - GOOSE_PROVIDER=openai
+#      - GOOSE_MODEL=qwen2.5-coder:7b
+#      - OPENAI_API_KEY=ollama
+#      - OPENAI_HOST=http://ollama:11434
+#      - OPENAI_BASE_PATH=v1/chat/completions
+       - GOOSE_PROVIDER=ollama
+       - GOOSE_MODEL=qwen2.5-coder:7b
+       - OLLAMA_HOST=http://ollama:11434
+       - OLLAMA_CONTEXT_LENGTH=32768
+
+  # --------------------------------------------------------
+  # LLM server
+  # --------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    networks:
+      - ai_local_net
+    volumes:
+      - ./ollama-data:/root/.ollama
+      - ${CODE_DIR}:/workspace
+    gpus:
+      all
+    environment:
+      - OLLAMA_MODELS=/root/.ollama/models
+    command: ["serve"]
+
+  # -------------------------------------------------------
+  # MCP proxy & servers
+  # -------------------------------------------------------
+  mcp-proxy:
+    build:
+      context: ./mcp-proxy
+    networks:
+      - ai_local_net
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./mcp-proxy/config:/config
+      - ${CODE_DIR}:/workspace
+
+#  mcp-proxy:
+#    image: ghcr.io/tbxark/mcp-proxy:latest
+#    container_name: mcp-proxy
+#    networks:
+#      - ai_local_net
+#    ports:
+#      - "3000:3000"
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
 
   # -------------------------------------------------------
   # Filesystem MCP
   # -------------------------------------------------------
-  fileserver-mcp:
-    image: mcp/filesystem:latest
-    container_name: fileserver-mcp
-    networks:
-      - ai_local_net
-    volumes:
-      - ${CODE_DIR}:/workspace
-    command: ["/workspace"]
+#  filesystem-mcp:
+#    image: mcp/filesystem:latest
+#    container_name: filesystem-mcp
+#    networks:
+#      - ai_local_net
+#    volumes:
+#      - ${CODE_DIR}:/workspace
+#    command:
+#      [
+#        "/workspace"
+#      ]
+#    stdin_open: true
+#    tty: true
 
   # -------------------------------------------------------
   # Git MCP
   # -------------------------------------------------------
-  git-mcp:
-    image: mcp/git:latest
-    container_name: git-mcp
-    networks:
-      - ai_local_net
-    volumes:
-      - ${CODE_DIR}:/workspace
+#  git-mcp:
+#    image: mcp/git:latest
+#    container_name: git-mcp
+#    networks:
+#      - ai_local_net
+#    volumes:
+#      - ${CODE_DIR}:/workspace
 
   # -------------------------------------------------------
   # Dotnet MCP
   # ------------------------------------------------------
-  dotnet-mcp:
-    image: mcr.microsoft.com/dotnet/sdk:10.0
-    container_name: dotnet-mcp
-    networks:
-      - ai_local_net
-    working_dir: /workspace
-    volumes:
-      - ${CODE_DIR}:/workspace
-    entrypoint: ["tail", "-f", "/dev/null"]
+#  dotnet-mcp:
+#    image: mcr.microsoft.com/dotnet/sdk:10.0
+#    container_name: dotnet-mcp
+#    networks:
+#      - ai_local_net
+#    working_dir: /workspace
+#    volumes:
+#      - ${CODE_DIR}:/workspace
+#    entrypoint: ["tail", "-f", "/dev/null"]
