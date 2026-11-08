@@ -4,7 +4,11 @@ GOOSE_TELEMETRY_ENABLED: false
 
 extensions:
   developer:
+    enabled: false
+
+  filesystem:
     enabled: true
-    name: developer
+    name: filesystem
+    type: streamable_http
+    uri: http://filesystem-mcp:8000/mcp
     timeout: 300
-    type: builtin

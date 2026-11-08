@@ -30,6 +30,7 @@ services:
       - agent_proxy_net
     depends_on:
       - ollama
+      - filesystem-mcp
     volumes:
       - ./goose/.config:/root/.config
     environment:
@@ -48,13 +49,24 @@ services:
       - container_net
     volumes:
       - ./ollama-data:/root/.ollama
-      - ${CODE_DIR}:/workspace
     gpus:
       all
     environment:
       - OLLAMA_MODELS=/root/.ollama/models
       - OLLAMA_CONTEXT_LENGTH=8192
     command: ["serve"]
+
+  # --------------------------------------------------------
+  # Filesystem MCP
+  # --------------------------------------------------------
+  filesystem-mcp:
+    build:
+      context: ./filesystem-mcp
+    restart: unless-stopped
+    networks:
+      - container_net
+    volumes:
+      - ${CODE_DIR}:/workspace
 
   # --------------------------------------------------------
   # Reverse proxy
