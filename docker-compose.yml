@@ -42,6 +42,7 @@ services:
       - GOOSE_PROVIDER=ollama
       - GOOSE_MODEL=qwen3-coder:30b
       - OLLAMA_HOST=http://ollama:11434
+      - GOOSE_MOIM_MESSAGE_FILE=/root/.config/instructions.md
 
   # --------------------------------------------------------
   # LLM server
