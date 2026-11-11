@@ -40,7 +40,7 @@ services:
       - ./goose/.config:/root/.config
     environment:
       - GOOSE_PROVIDER=ollama
-      - GOOSE_MODEL=qwen3:8b
+      - GOOSE_MODEL=qwen3-coder:30b
       - OLLAMA_HOST=http://ollama:11434
 
   # --------------------------------------------------------
