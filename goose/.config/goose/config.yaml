@@ -19,3 +19,10 @@ extensions:
     type: streamable_http
     uri: http://dotnet-mcp:8000/mcp
     timeout: 300
+
+  git:
+    enabled: true
+    name: git
+    type: streamable_http
+    uri: http://git-mcp:8000/mcp
+    timeout: 300

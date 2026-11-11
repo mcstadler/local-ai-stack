@@ -35,6 +35,7 @@ services:
       - ollama
       - filesystem-mcp
       - dotnet-mcp
+      - git-mcp
     volumes:
       - ./goose/.config:/root/.config
     environment:
@@ -82,6 +83,18 @@ services:
     networks:
       - container_net
       - dotnet_mcp_egress_net
+    volumes:
+      - ${CODE_DIR}:/workspace
+
+  # --------------------------------------------------------
+  # Git MCP
+  # --------------------------------------------------------
+  git-mcp:
+    build:
+      context: ./git-mcp
+    restart: unless-stopped
+    networks:
+      - container_net
     volumes:
       - ${CODE_DIR}:/workspace
 
